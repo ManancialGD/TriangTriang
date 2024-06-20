@@ -1,39 +1,26 @@
 ﻿using System;
+using TriangTriang.Controls;
+using TriangTriang.Models;
 
 namespace TriangTriang.View
 {
     class Program
     {
+        static Control control;
+
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            control = new Control();
+            control.Initialize();
+
+            ShowMap();
         }
 
-        public void Visualize()
+        private static void ShowMap()
         {
-            /*
-            
-            〇 
-            ⦿⊚
-            ⒶⒷⒸⒹⒺⒻ
+            Map map = control.GetMap();
+            Console.WriteLine(map.Visualize());
 
-            ⊚  ⊚  ⊚
-              ⊚⊚⊚
-              
-              ⦿⦿⦿
-            ⦿  ⦿  ⦿
-            
-            */
-
-            /*
-            [ 1, 1, 1 
-              1, 1, 1 
-              X, 0, X
-              1, 1, 1 
-              1, 1, 1 ]
-
-
-            */
         }
     }
 }
