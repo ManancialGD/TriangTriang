@@ -82,7 +82,52 @@ namespace TriangTriang.Models
             return map;
         }
 
-        public void FindPossiblePlays(bool currentPlayer, int currentSlot){ // ( 0 - 14 )
+        public VisualizePossibilities(bool currentPlayer, int currentSlot){
+        {
+            string map = "";
+            int index = 0;
+
+            int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
+            int[] secondSpace = { 5, 6, 11 };
+
+            int[] possibilities = FindPossiblePlays(currentPlayer, currentSlot);
+
+            foreach (var slot in Slots)
+            {
+
+                foreach (int i in firstSpace)
+                {
+                    if (i == index) map += " ";
+                }
+
+                switch (slot)
+                {
+                    case 1:
+                        map += "⚪";
+                        break;
+                    case 2:
+                        map += "⚫";
+                        break;
+                    default:
+                        map += "  ";
+                        break;
+                }
+
+                foreach (int i in secondSpace)
+                {
+                    if (i == index) map += " ";
+                }
+
+                if((index + 1) % 3 == 0) map += "\n";
+
+                index++;
+
+            }
+            return map;
+         
+        }
+
+        private int[] FindPossiblePlays(bool currentPlayer, int currentSlot){ // ( 0 - 14 )
             
             int[] possiblePlays = new int[0];
             (int[] piecesDetected, int[] slotsIndexes) = GetCloseSlots(currentSlot);
@@ -102,7 +147,7 @@ namespace TriangTriang.Models
                 }
                 index++;
             }
-            Console.WriteLine(possiblePlays.Length);
+            return possiblePlays;
         }
 
         private void AddToArray(ref int[] array, int value){
@@ -152,9 +197,8 @@ namespace TriangTriang.Models
         }
 
         private int GetSlot(int indexSlot){ // 0 - 14
-            if(slot < 0 || slot > 14) return -2; // invalid empty space
-            if(Slots[ConvertIndexToSlot(indexSlot)]) return Slots[ConvertIndexToSlot(indexSlot)];
-            else return -2;
+            if(indexSlot < 0 || indexSlot > 14) return -2; // invalid empty space
+            return Slots[ConvertIndexToSlot(indexSlot).Item1, ConvertIndexToSlot(indexSlot).Item2];
         } 
 
         public int ConvertSlotToIndex(int slot1, int slot2) => slot1 * 3 + slot2; // index ( 0 - 14)

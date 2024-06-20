@@ -20,8 +20,8 @@ namespace TriangTriang.View
         private static void ShowMap()
         {
             Map map = control.GetMap();
-            Console.WriteLine(map.Visualize());
             map.FindPossiblePlays(CurrentPlayer, 10);
+            Console.WriteLine(map.VisualizePossibilities(CurrentPlayer, 10));
 
         }
     }
