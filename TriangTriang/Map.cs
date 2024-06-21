@@ -40,7 +40,7 @@ namespace TriangTriang.Models
         ⦿  ⦿  ⦿
         */
 
-        public string Visualize()
+        public string VisualizeMap()
         {
             string map = "";
             int index = 0;
@@ -83,7 +83,7 @@ namespace TriangTriang.Models
             return map;
         }
 
-        public string Visualize_ChoosePiece(bool currentPlayer)
+        public string FindMovablePieces(bool currentPlayer, int currentSlotIndex)
         {
             string map = "";
             int index = 0;
@@ -92,10 +92,12 @@ namespace TriangTriang.Models
 
             int[] piecesPossible = new int[0];
 
-            int[][] possiblePlays = new int[0][]; // possibilities for each piece
-            int b = 0;
+            int[][] possiblePlays = new int[15][]; // possibilities for each piece
+            int b = 0; // index
+            Console.WriteLine("slots avaiable: " + Slots.Length);
             foreach (int slot in Slots)
             {
+                Console.WriteLine("slot: " + slot);
                 possiblePlays[b] = FindPossiblePlays(b);
                 b++;
             }
@@ -103,12 +105,16 @@ namespace TriangTriang.Models
             foreach (int[] p in possiblePlays)
             {
                 if (p.Length > 0)
-                    AddToArray(ref piecesPossible, b); // piece can move
+                {
+                    if (b != currentSlotIndex)
+                    {
+                        AddToArray(ref piecesPossible, b); // piece can move/kill
+                    }
+                }
+                
                 b++;
             }
-
-            Console.WriteLine(possiblePlays.Length);
-
+            Console.WriteLine("Pieces Possible: " + piecesPossible.Length);
             foreach (var slot in Slots)
             {
                 foreach (int i in firstSpace)
@@ -117,17 +123,32 @@ namespace TriangTriang.Models
                         map += " ";
                 }
 
-                switch (slot)
+                bool isPossibility = false;
+
+                foreach (int p in piecesPossible)
                 {
-                    case 1:
-                        map += "⚪";
+                    if (index == p)
+                    {
+                        map += "🔴";
+                        isPossibility = true;
                         break;
-                    case 2:
-                        map += "⚫";
-                        break;
-                    default:
-                        map += "  ";
-                        break;
+                    }
+                }
+
+                if (!isPossibility)
+                {
+                    switch (slot)
+                    {
+                        case 1:
+                            map += "⚪";
+                            break;
+                        case 2:
+                            map += "⚫";
+                            break;
+                        default:
+                            map += "  ";
+                            break;
+                    }
                 }
 
                 foreach (int i in secondSpace)
@@ -141,6 +162,7 @@ namespace TriangTriang.Models
 
                 index++;
             }
+            Console.WriteLine("Possibilities: " + piecesPossible.Length);
             return map;
         }
 
@@ -194,6 +216,14 @@ namespace TriangTriang.Models
         { // ( 0 - 14 )
             int[] possiblePlays = new int[0];
             (int[] piecesDetected, int[] slotsIndexes) = GetCloseSlots(currentSlot);
+
+            bool currentPlayer = true;
+            if (
+                Slots[ConvertIndexToSlot(currentSlot).Item1, ConvertIndexToSlot(currentSlot).Item2]
+                == 1
+            )
+                currentPlayer = false;
+
             Console.WriteLine(GetCloseSlots(currentSlot));
             int index = 0;
             foreach (int piece in piecesDetected)

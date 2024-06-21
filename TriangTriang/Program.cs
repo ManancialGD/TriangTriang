@@ -7,21 +7,43 @@ namespace TriangTriang.View
     class Program
     {
         static Control control;
-        public static bool CurrentPlayer { get; private set; } = true; // piece 1 (player false) |  piece 2 (player true)
-        public static int PieceChoosen { get; private set; } // ( 0 - 14 ) Piece index
+
+        public static int GameState { get; private set; }
+
+        public static bool CurrentPlayer { get; private set; } = false; // piece 1 (player false) |  piece 2 (player true)
+        public static int PieceChoosen { get; private set; } = 7; // ( 0 - 14 ) Piece index
 
         static void Main(string[] args)
         {
+            GameState = 1;
             control = new Control();
             control.Initialize();
 
-            ShowMap();
+            while (GameState != 0)
+            {
+                int rightColor = 1;
+                if (CurrentPlayer)
+                    rightColor = 2;
+
+                Map map = control.GetMap();
+
+                switch (GameState)
+                {
+                    case 1: // choose what piece to move
+                        ShowMap();
+                        string input = Console.ReadLine();
+                        break;
+                }
+            }
         }
 
         private static void ShowMap()
         {
             Map map = control.GetMap();
-            Console.WriteLine(map.VisualizePossibilities(PieceChoosen));
+
+            Console.WriteLine(map.FindMovablePieces(CurrentPlayer, PieceChoosen));
         }
+
+        public static void ChangeGameState(int new_game_state) => GameState = new_game_state;
     }
 }
