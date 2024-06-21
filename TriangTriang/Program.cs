@@ -7,7 +7,8 @@ namespace TriangTriang.View
     class Program
     {
         static Control control;
-        public static bool CurrentPlayer {get; private set;} = true; // piece 1 (player false) |  piece 2 (player true)
+        public static bool CurrentPlayer { get; private set; } = true; // piece 1 (player false) |  piece 2 (player true)
+        public static int PieceChoosen { get; private set; } // ( 0 - 14 ) Piece index
 
         static void Main(string[] args)
         {
@@ -20,9 +21,7 @@ namespace TriangTriang.View
         private static void ShowMap()
         {
             Map map = control.GetMap();
-            map.FindPossiblePlays(CurrentPlayer, 10);
-            Console.WriteLine(map.VisualizePossibilities(CurrentPlayer, 10));
-
+            Console.WriteLine(map.VisualizePossibilities(PieceChoosen));
         }
     }
 }
