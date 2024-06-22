@@ -83,10 +83,9 @@ namespace TriangTriang.Models
             return map;
         }
 
-        public string FindMovablePieces(bool currentPlayer)
+        public string ShowMovablePieces(bool currentPlayer)
         {
             string map = "";
-            int index = 0;
             int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
             int[] secondSpace = { 5, 6, 11 };
 
@@ -103,12 +102,8 @@ namespace TriangTriang.Models
                 b++;
             }
             b = 0;
-            Console.WriteLine("Plays Possible: " + possiblePlays.Length);
             foreach (int[] p in possiblePlays)
             {
-                Console.WriteLine(
-                    "Piece " + b + " have " + possiblePlays[b].Length + " possibilities"
-                );
                 if (
                     p.Length > 0
                     && Slots[ConvertIndexToSlot(b).Item1, ConvertIndexToSlot(b).Item2] == rightColor
@@ -127,7 +122,17 @@ namespace TriangTriang.Models
 
                 b++;
             }
-            Console.WriteLine("Pieces Possible: " + piecesPossible.Length);
+            int index = 0;
+            int optionsUsed = 0;
+            string[] symbols =
+            { // Breno coloca aqui os simbolos de opções :(
+                "㊙️",
+                "🉐",
+                "㊗️",
+                "🈲",
+                "🈴",
+                "🈲"
+            };
             foreach (var slot in Slots)
             {
                 foreach (int i in firstSpace)
@@ -142,7 +147,8 @@ namespace TriangTriang.Models
                 {
                     if (index == p)
                     {
-                        map += "🔴";
+                        map += symbols[optionsUsed];
+                        optionsUsed++;
                         isPossibility = true;
                         break;
                     }
@@ -190,6 +196,19 @@ namespace TriangTriang.Models
             int[] possiblePlays = FindPossiblePlays(currentSlot);
             Console.WriteLine(possiblePlays.Length);
 
+            int[] slotsAvaiable = FindPossiblePlays(currentSlot);
+
+            int optionsUsed = 0;
+            string[] symbols =
+            { // Breno coloca aqui os simbolos de opções :(
+                "㊙️",
+                "🉐",
+                "㊗️",
+                "🈲",
+                "🈴",
+                "🈲"
+            };
+
             foreach (var slot in Slots)
             {
                 foreach (int i in firstSpace)
@@ -198,17 +217,38 @@ namespace TriangTriang.Models
                         map += " ";
                 }
 
-                switch (slot)
+                bool isPossibility = false;
+
+                if (index == currentSlot)
+                    map += "🔵";
+                else
                 {
-                    case 1:
-                        map += "⚪";
-                        break;
-                    case 2:
-                        map += "⚫";
-                        break;
-                    default:
-                        map += "  ";
-                        break;
+                    foreach (int p in slotsAvaiable)
+                    {
+                        if (index == p)
+                        {
+                            map += symbols[optionsUsed];
+                            optionsUsed++;
+                            isPossibility = true;
+                            break;
+                        }
+                    }
+
+                    if (!isPossibility)
+                    {
+                        switch (slot)
+                        {
+                            case 1:
+                                map += "⚪";
+                                break;
+                            case 2:
+                                map += "⚫";
+                                break;
+                            default:
+                                map += "  ";
+                                break;
+                        }
+                    }
                 }
 
                 foreach (int i in secondSpace)
@@ -262,11 +302,21 @@ namespace TriangTriang.Models
 
                     //Console.WriteLine("Slot checked: " + GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1 * 2, slot.Item2 + mov.Item2 * 2)));
                     if (
-                        GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1 * 2, slot.Item2 + mov.Item2 * 2))
-                        == 0
+                        GetSlot(
+                            ConvertSlotToIndex(
+                                slot.Item1 + mov.Item1 * 2,
+                                slot.Item2 + mov.Item2 * 2
+                            )
+                        ) == 0
                     )
                     {
-                        AddToArray(ref possiblePlays, slotsIndexes[index]);
+                        AddToArray(
+                            ref possiblePlays,
+                            ConvertSlotToIndex(
+                                slot.Item1 + mov.Item1 * 2,
+                                slot.Item2 + mov.Item2 * 2
+                            )
+                        );
                     }
                 }
 
