@@ -83,35 +83,48 @@ namespace TriangTriang.Models
             return map;
         }
 
-        public string FindMovablePieces(bool currentPlayer, int currentSlotIndex)
+        public string FindMovablePieces(bool currentPlayer)
         {
             string map = "";
             int index = 0;
             int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
             int[] secondSpace = { 5, 6, 11 };
 
+            int rightColor = 2;
+            if (!currentPlayer)
+                rightColor = 1;
             int[] piecesPossible = new int[0];
 
             int[][] possiblePlays = new int[15][]; // possibilities for each piece
             int b = 0; // index
-            Console.WriteLine("slots avaiable: " + Slots.Length);
             foreach (int slot in Slots)
             {
-                Console.WriteLine("slot: " + slot);
-                possiblePlays[b] = FindPossiblePlays(b);
+                possiblePlays[b] = FindPossiblePlays(b); // piece index: b
                 b++;
             }
             b = 0;
+            Console.WriteLine("Plays Possible: " + possiblePlays.Length);
             foreach (int[] p in possiblePlays)
             {
-                if (p.Length > 0)
+                Console.WriteLine(
+                    "Piece " + b + " have " + possiblePlays[b].Length + " possibilities"
+                );
+                if (
+                    p.Length > 0
+                    && Slots[ConvertIndexToSlot(b).Item1, ConvertIndexToSlot(b).Item2] == rightColor
+                ) // 1 or more possibilities
                 {
-                    if (b != currentSlotIndex)
+                    if (
+                        b > 0
+                        && b < 15
+                        && Slots[ConvertIndexToSlot(b).Item1, ConvertIndexToSlot(b).Item2]
+                            == rightColor
+                    ) // own slot
                     {
                         AddToArray(ref piecesPossible, b); // piece can move/kill
                     }
                 }
-                
+
                 b++;
             }
             Console.WriteLine("Pieces Possible: " + piecesPossible.Length);
@@ -228,17 +241,18 @@ namespace TriangTriang.Models
             int index = 0;
             foreach (int piece in piecesDetected)
             {
-                if (piece == 0)
+                if (piece == 0) // valid empty space (can move own piece)
                 {
                     AddToArray(ref possiblePlays, slotsIndexes[index]);
                 }
                 else if (
                     piece
-                    != Slots[
-                        ConvertIndexToSlot(currentSlot).Item1,
-                        ConvertIndexToSlot(currentSlot).Item2
-                    ]
-                )
+                        != Slots[
+                            ConvertIndexToSlot(currentSlot).Item1,
+                            ConvertIndexToSlot(currentSlot).Item2
+                        ]
+                    && piece > 0
+                ) // enemy piece near
                 {
                     (int, int) slot = ConvertIndexToSlot(currentSlot); // index -> slot
                     (int, int) mov = (
@@ -246,8 +260,9 @@ namespace TriangTriang.Models
                         ConvertIndexToSlot(slotsIndexes[index]).Item2 - slot.Item2
                     );
 
+                    //Console.WriteLine("Slot checked: " + GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1 * 2, slot.Item2 + mov.Item2 * 2)));
                     if (
-                        GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1, slot.Item2 + mov.Item2))
+                        GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1 * 2, slot.Item2 + mov.Item2 * 2))
                         == 0
                     )
                     {
@@ -275,7 +290,7 @@ namespace TriangTriang.Models
             return;
         }
 
-        private (int[], int[]) GetCloseSlots(int slot)
+        public (int[], int[]) GetCloseSlots(int slot)
         { // 0 - 14 ( index, piece? )
             Console.WriteLine("GetCloseSlots( " + slot + " )");
             switch (slot)
@@ -310,6 +325,28 @@ namespace TriangTriang.Models
                             ConvertSlotToIndex(2, 1)
                         }
                     );
+                case 4:
+                    return (
+                        new int[] { Slots[0, 1], Slots[1, 0], Slots[1, 2], Slots[2, 1] },
+                        new int[]
+                        {
+                            ConvertSlotToIndex(0, 1),
+                            ConvertSlotToIndex(1, 0),
+                            ConvertSlotToIndex(1, 2),
+                            ConvertSlotToIndex(2, 1)
+                        }
+                    );
+                case 5:
+                    return (
+                        new int[] { Slots[0, 2], Slots[1, 1], Slots[2, 1] },
+                        new int[]
+                        {
+                            ConvertSlotToIndex(0, 2),
+                            ConvertSlotToIndex(1, 1),
+                            ConvertSlotToIndex(2, 1)
+                        }
+                    );
+
                 case 7:
                     return (
                         new int[]
@@ -383,7 +420,7 @@ namespace TriangTriang.Models
                         new int[] { ConvertSlotToIndex(4, 1), ConvertSlotToIndex(3, 2) }
                     );
                 default:
-                    Console.WriteLine("ERROR 926491 - Invalid slot index");
+                    Console.WriteLine("ERROR 926491 - Invalid slot index (ID:" + slot + ")");
                     return (new int[] { }, new int[] { });
             }
         }
