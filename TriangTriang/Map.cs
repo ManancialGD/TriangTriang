@@ -1,497 +1,339 @@
 using System;
-using System.Collections.Generic;
+using System.Security.AccessControl;
 
 namespace TriangTriang.Models
 {
-    public class Map
+    public class MapManager
     {
-        public int[,] Slots { get; private set; }
+        private Piece[,] map;
+        private int[] selectedPiece;
+        private string currentPlayerPiece = "⚪";
+        private string currentEnemyPiece = "⚫";
 
-        /*
-        [ 1, 1, 1
-          1, 1, 1
-         -1, 0,-1
-          1, 1, 1
-          1, 1, 1 ]
-        */
-
-        public Map()
+        /// <summary>
+        /// Will create the map and
+        /// create an empty array[2] for the
+        /// SelectedPiece.
+        /// </summary>&
+        public MapManager()
         {
-            Slots = new int[5, 3]
+            map = new Piece[5, 3]
             {
-                { 1, 1, 1 },
-                { 2, 1, 0 },
-                { -1, 1, -1 },
-                { 2, 2, 0 },
-                { 2, 2, 2 }
+                { new Piece('⚪'),      new Piece('⚪'),     new Piece('⚪') },
+                {      new Piece('⚪'), new Piece('⚪'),  new Piece('⚪') },
+                {      new Piece('⊗'),  new Piece('⊙'), new Piece('⊗') },
+                {       new Piece('⚫'), new Piece('⚫'), new Piece('⚫') },
+                { new Piece('⚫'),       new Piece('⚫'),      new Piece('⚫') }
             };
+            selectedPiece = new int[2];
         }
 
-        /*
-        〇
-        ⦿⊚
-
-        ⒶⒷⒸⒹⒺⒻ
-
-        ⊚  ⊚  ⊚
-          ⊚⊚⊚
-
-          ⦿⦿⦿
-        ⦿  ⦿  ⦿
-        */
-
-        public string VisualizeMap()
+        /// <summary>
+        /// This will check if the selected piece is valid.
+        /// By seeing if the piece is the current player's piece
+        /// and will check if that piece can move.
+        /// </summary>
+        /// <param name="coords">The selected piece to move coords as [y,x]</param>
+        /// <returns>true if it's a valid piece and can move</returns>
+        public bool CheckIfSelectedAValidPiece(int[] coords)
         {
-            string map = "";
-            int index = 0;
-
-            int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
-            int[] secondSpace = { 5, 6, 11 };
-
-            foreach (var slot in Slots)
+            // First of all, this will check if the selected piece is the currene player's
+            if (map[coords[0], coords[1]].ToString() == currentPlayerPiece)
             {
-                foreach (int i in firstSpace)
+                selectedPiece = coords;
+                bool hasAMove = false; // Flag to wether the piece an move or not
+
+
+                // This will try to move to a coord.
+                // Rows
+                for (int i = -4; i < 4; i++)
                 {
-                    if (i == index)
-                        map += " ";
-                }
-
-                switch (slot)
-                {
-                    case 1:
-                        map += "⚪";
-                        break;
-                    case 2:
-                        map += "⚫";
-                        break;
-                    default:
-                        map += "  ";
-                        break;
-                }
-
-                foreach (int i in secondSpace)
-                {
-                    if (i == index)
-                        map += " ";
-                }
-
-                if ((index + 1) % 3 == 0)
-                    map += "\n";
-
-                index++;
-            }
-            return map;
-        }
-
-        public string ShowMovablePieces(bool currentPlayer)
-        {
-            string map = "";
-            int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
-            int[] secondSpace = { 5, 6, 11 };
-
-            int rightColor = 2;
-            if (!currentPlayer)
-                rightColor = 1;
-            int[] piecesPossible = new int[0];
-
-            int[][] possiblePlays = new int[15][]; // possibilities for each piece
-            int b = 0; // index
-            foreach (int slot in Slots)
-            {
-                possiblePlays[b] = FindPossiblePlays(b); // piece index: b
-                b++;
-            }
-            b = 0;
-            foreach (int[] p in possiblePlays)
-            {
-                if (
-                    p.Length > 0
-                    && Slots[ConvertIndexToSlot(b).Item1, ConvertIndexToSlot(b).Item2] == rightColor
-                ) // 1 or more possibilities
-                {
-                    if (
-                        b > 0
-                        && b < 15
-                        && Slots[ConvertIndexToSlot(b).Item1, ConvertIndexToSlot(b).Item2]
-                            == rightColor
-                    ) // own slot
+                    // Cols
+                    for (int j = -4; j < 4; j++)
                     {
-                        AddToArray(ref piecesPossible, b); // piece can move/kill
+
+                        // target try by each row and col.
+                        int[] targetTry = new int[2];
+                        targetTry[0] = coords[0] + j;
+                        targetTry[1] = coords[1] + i;
+
+                        // Check the distance.
+                        int distY = (int)MathF.Abs(coords[0] - targetTry[0]);
+                        int distX = (int)MathF.Abs(coords[1] - targetTry[1]);
+
+                        if (distX > 2 || distY > 2 || targetTry[0] < 0 || targetTry[1] < 0) // prevent from going in a distace > 2 or to a "-" pos.
+                        {
+                            hasAMove = false;
+                        }
+                        else if (IsJumpMove(targetTry[1], targetTry[0], distX, distY, out int[] midPos))
+                        {
+                            hasAMove = true;
+                            goto endOfLoop; // once found, stop the loop
+                        }
+                        else if (IsAdjacentMove(distX, distY, targetTry))
+                        {
+                            hasAMove = true;
+                            goto endOfLoop; // once found, stop the loop
+                        }
+                        else
+                        {
+                            hasAMove = false;
+                        }
                     }
                 }
 
-                b++;
-            }
-            int index = 0;
-            int optionsUsed = 0;
-            string[] symbols =
-            { // Breno coloca aqui os simbolos de opções :(
-                "㊙️",
-                "🉐",
-                "㊗️",
-                "🈲",
-                "🈴",
-                "🈲"
-            };
-            foreach (var slot in Slots)
-            {
-                foreach (int i in firstSpace)
+            endOfLoop:
+
+                if (hasAMove)
                 {
-                    if (i == index)
-                        map += " ";
+                    selectedPiece = coords;
+                    return true;
                 }
-
-                bool isPossibility = false;
-
-                foreach (int p in piecesPossible)
-                {
-                    if (index == p)
-                    {
-                        map += symbols[optionsUsed];
-                        optionsUsed++;
-                        isPossibility = true;
-                        break;
-                    }
-                }
-
-                if (!isPossibility)
-                {
-                    switch (slot)
-                    {
-                        case 1:
-                            map += "⚪";
-                            break;
-                        case 2:
-                            map += "⚫";
-                            break;
-                        default:
-                            map += "  ";
-                            break;
-                    }
-                }
-
-                foreach (int i in secondSpace)
-                {
-                    if (i == index)
-                        map += " ";
-                }
-
-                if ((index + 1) % 3 == 0)
-                    map += "\n";
-
-                index++;
-            }
-            Console.WriteLine("Possibilities: " + piecesPossible.Length);
-            return map;
-        }
-
-        public string VisualizePossibilities(int currentSlot)
-        {
-            string map = "";
-            int index = 0;
-
-            int[] firstSpace = { 1, 2, 3, 8, 9, 13, 14 };
-            int[] secondSpace = { 5, 6, 11 };
-
-            int[] possiblePlays = FindPossiblePlays(currentSlot);
-            Console.WriteLine(possiblePlays.Length);
-
-            int[] slotsAvaiable = FindPossiblePlays(currentSlot);
-
-            int optionsUsed = 0;
-            string[] symbols =
-            { // Breno coloca aqui os simbolos de opções :(
-                "㊙️",
-                "🉐",
-                "㊗️",
-                "🈲",
-                "🈴",
-                "🈲"
-            };
-
-            foreach (var slot in Slots)
-            {
-                foreach (int i in firstSpace)
-                {
-                    if (i == index)
-                        map += " ";
-                }
-
-                bool isPossibility = false;
-
-                if (index == currentSlot)
-                    map += "🔵";
                 else
                 {
-                    foreach (int p in slotsAvaiable)
-                    {
-                        if (index == p)
-                        {
-                            map += symbols[optionsUsed];
-                            optionsUsed++;
-                            isPossibility = true;
-                            break;
-                        }
-                    }
-
-                    if (!isPossibility)
-                    {
-                        switch (slot)
-                        {
-                            case 1:
-                                map += "⚪";
-                                break;
-                            case 2:
-                                map += "⚫";
-                                break;
-                            default:
-                                map += "  ";
-                                break;
-                        }
-                    }
+                    Console.WriteLine("That piece can't move");
+                    return false;
                 }
-
-                foreach (int i in secondSpace)
-                {
-                    if (i == index)
-                        map += " ";
-                }
-
-                if ((index + 1) % 3 == 0)
-                    map += "\n";
-
-                index++;
             }
+            Console.WriteLine("That piece isn't yours"); // selected an enemy's piece
+            return false;
+        }
+
+        /// <summary>
+        /// This will check if the pos the player
+        /// want to move the pice is valid, and move it.
+        /// </summary>
+        /// <param name="targetCoords">Place where the player wants to move the piece to</param>
+        /// <returns>True if the position is valid.</returns>
+        public bool CheckIfSelectedAValidTarget(int[] targetCoords)
+        {
+            int targetX = targetCoords[1];
+            int targetY = targetCoords[0];
+
+            int distX = Math.Abs(selectedPiece[1] - targetX);
+            int distY = Math.Abs(selectedPiece[0] - targetY);
+
+            if (IsAdjacentMove(distX, distY, targetCoords))
+            {
+                MoveToLocation(selectedPiece, new int[] { targetY, targetX });
+                return true;
+            }
+            else if (IsJumpMove(targetX, targetY, distX, distY, out int[] midPos))
+            {
+                map[midPos[0], midPos[1]] = new Piece('⊙');
+                MoveToLocation(selectedPiece, new int[] { targetY, targetX });
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// This will check for side's movement.
+        /// </summary>
+        /// <param name="distX"> distance in X between the selected piece pos and the target pos </param>
+        /// <param name="distY"> distance in Y between the selected piece pos and the target pos </param>
+        /// <param name="targetCoords"> Target position. </param>
+        /// <returns>True if can move adjacently</returns>
+        private bool IsAdjacentMove(int distX, int distY, int[] targetCoords)
+        {
+            if (selectedPiece[0] % 2 == 0) // if the selected piece is in A, C or E
+            {
+                if ((distX == 0 && distY == 1) || (distX == 1 && distY == 0))
+                {
+                    return IsWithinBounds(targetCoords[0], targetCoords[1]) && map[targetCoords[0], targetCoords[1]].ToString() == "⊙";
+                }
+                else return false;
+            }
+            else // if the row is B or D
+            {
+                if ((distX == 0 && distY == 1) || (distX == 1 && distY == 0))
+                {
+                    return IsWithinBounds(targetCoords[0], targetCoords[1]) && map[targetCoords[0], targetCoords[1]].ToString() == "⊙";
+                }
+                else if (distX == 1 && distY == 1)
+                {
+                    if (targetCoords[0] == 2) return IsWithinBounds(targetCoords[0], targetCoords[1]) && map[targetCoords[0], targetCoords[1]].ToString() == "⊙";
+                    else return false;
+                }
+                else return false;
+            }
+        }
+
+        /// <summary>
+        /// Determines if the move is a valid jump move over an enemy piece.
+        /// </summary>
+        /// <param name="targetX">Target position in X axis.</param>
+        /// <param name="targetY">Target position in Y axis.</param>
+        /// <param name="distX">Distance between selected piece and target position in X axis.</param>
+        /// <param name="distY">Distance between selected piece and target position in Y axis.</param>
+        /// <param name="midPos">Output parameter returning the mid position between selected piece and target position.</param>
+        /// <returns>True if the move is a valid jump move, otherwise false.</returns>
+        private bool IsJumpMove(int targetX, int targetY, int distX, int distY, out int[] midPos)
+        {
+            midPos = new int[2];
+
+            // Horizontal jump
+            if (distX == 2 && distY == 0)
+            {
+                int midX = (int)MathF.Abs((selectedPiece[1] + targetX) / 2);
+                if (IsWithinBounds(selectedPiece[0], midX) && map[selectedPiece[0], midX].ToString() == currentEnemyPiece)
+                {
+                    if (IsWithinBounds(targetY, targetX) && map[targetY, targetX].ToString() == "⊙")
+                    {
+                        midPos[0] = selectedPiece[0];
+                        midPos[1] = midX;
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            // Diagonal jump
+            else if (distX == 2 && distY == 2)
+            {
+                int midX = (int)MathF.Abs((selectedPiece[1] + targetX) / 2);
+                int midY = (int)MathF.Abs((selectedPiece[0] + targetY) / 2);
+                if (IsWithinBounds(midY, midX) && map[midY, midX].ToString() == currentEnemyPiece)
+                {
+                    if (IsWithinBounds(targetY, targetX) && map[targetY, targetX].ToString() == "⊙")
+                    {
+                        midPos[0] = midY;
+                        midPos[1] = midX;
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            // Vertical jump
+            else if (distX == 0 && distY == 2)
+            {
+                int midY = (int)MathF.Abs((selectedPiece[0] + targetY) / 2);
+                if (IsWithinBounds(midY, 0) && map[midY, targetX].ToString() == currentEnemyPiece)
+                {
+                    if (IsWithinBounds(targetY, targetX) && map[targetY, targetX].ToString() == "⊙")
+                    {
+                        midPos[0] = midY;
+                        midPos[1] = targetX;
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            // One axis distance 1, another axis distance 2
+            else if (distX == 1 && distY == 2)
+            {
+                int midX = 0;
+                if (selectedPiece[0] < 2) midX = selectedPiece[1];
+                else midX = targetX;
+                int midY = (int)MathF.Abs((selectedPiece[0] + targetY) / 2);
+                if (IsWithinBounds(midY, midX) && map[midY, midX].ToString() == currentEnemyPiece)
+                {
+                    Console.WriteLine($"{IsWithinBounds(targetY, targetX)}, {map[targetY, targetX].ToString() == "⊙"}");
+                    if (IsWithinBounds(targetY, targetX) && map[targetY, targetX].ToString() == "⊙")
+                    {
+                        midPos[0] = midY;
+                        midPos[1] = midX;
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            // Invalid jump move
+            else
+            {
+                return false;
+            }
+        }
+
+        // Check if the coords are within bounds of the map
+        private bool IsWithinBounds(int y, int x)
+        {
+            return y >= 0 && y < map.GetLength(0) && x >= 0 && x < map.GetLength(1);
+        }
+
+        /// <summary>
+        /// Will put an empty space where the piece are
+        /// and will put the piece where the targetPos is.
+        /// </summary>
+        /// <param name="currentPos">The current piece location</param>
+        /// <param name="targetPos">Where the piece want to g</param>
+        private void MoveToLocation(int[] currentPos, int[] targetPos)
+        {
+            map[currentPos[0], currentPos[1]] = new Piece('⊙');
+            map[targetPos[0], targetPos[1]] = new Piece(currentPlayerPiece[0]);
+        }
+
+        /// <summary>
+        /// This will run through the map
+        /// and will check if the piece is there
+        /// </summary>
+        /// <param name="piece">The piece you want to check if has in the map</param>
+        /// <returns>True if there is NO pieces of that type.</returns>
+        public bool CheckPiecesOfType(string piece)
+        {
+            int pieceCount = 0;
+            foreach (Piece p in map)
+            {
+                if (p.ToString() == piece) pieceCount++;
+            }
+            if (pieceCount > 0) return false;
+            else return true;
+        }
+
+        // Getters and Setters.
+        public Piece[,] GetMap()
+        {
             return map;
         }
-
-        public int[] FindPossiblePlays(int currentSlot)
-        { // ( 0 - 14 )
-            int[] possiblePlays = new int[0];
-            (int[] piecesDetected, int[] slotsIndexes) = GetCloseSlots(currentSlot);
-
-            bool currentPlayer = true;
-            if (
-                Slots[ConvertIndexToSlot(currentSlot).Item1, ConvertIndexToSlot(currentSlot).Item2]
-                == 1
-            )
-                currentPlayer = false;
-
-            Console.WriteLine(GetCloseSlots(currentSlot));
-            int index = 0;
-            foreach (int piece in piecesDetected)
-            {
-                if (piece == 0) // valid empty space (can move own piece)
-                {
-                    AddToArray(ref possiblePlays, slotsIndexes[index]);
-                }
-                else if (
-                    piece
-                        != Slots[
-                            ConvertIndexToSlot(currentSlot).Item1,
-                            ConvertIndexToSlot(currentSlot).Item2
-                        ]
-                    && piece > 0
-                ) // enemy piece near
-                {
-                    (int, int) slot = ConvertIndexToSlot(currentSlot); // index -> slot
-                    (int, int) mov = (
-                        ConvertIndexToSlot(slotsIndexes[index]).Item1 - slot.Item1,
-                        ConvertIndexToSlot(slotsIndexes[index]).Item2 - slot.Item2
-                    );
-
-                    //Console.WriteLine("Slot checked: " + GetSlot(ConvertSlotToIndex(slot.Item1 + mov.Item1 * 2, slot.Item2 + mov.Item2 * 2)));
-                    if (
-                        GetSlot(
-                            ConvertSlotToIndex(
-                                slot.Item1 + mov.Item1 * 2,
-                                slot.Item2 + mov.Item2 * 2
-                            )
-                        ) == 0
-                    )
-                    {
-                        AddToArray(
-                            ref possiblePlays,
-                            ConvertSlotToIndex(
-                                slot.Item1 + mov.Item1 * 2,
-                                slot.Item2 + mov.Item2 * 2
-                            )
-                        );
-                    }
-                }
-
-                index++;
-            }
-            return possiblePlays;
-        }
-
-        private void AddToArray(ref int[] array, int value)
+        /// <summary>
+        /// This will set what is the current player's pice
+        /// and enemy's
+        /// </summary>
+        /// <param name="isPlayer1Turn">if the current player is the player1</param>
+        public void SetCurrentPlayerPiece(bool isPlayer1Turn)
         {
-            int[] tmp = array;
-            array = new int[array.Length + 1];
-
-            int i = 0;
-            foreach (int v in tmp)
+            if (isPlayer1Turn)
             {
-                array[i] = v;
-                i++;
-            }
-            array[array.Length - 1] = value;
-            return;
-        }
-
-        public (int[], int[]) GetCloseSlots(int slot)
-        { // 0 - 14 ( index, piece? )
-            Console.WriteLine("GetCloseSlots( " + slot + " )");
-            switch (slot)
-            {
-                case 0:
-                    return (
-                        new int[] { Slots[0, 1], Slots[1, 0] },
-                        new int[] { ConvertSlotToIndex(0, 1), ConvertSlotToIndex(1, 0) }
-                    );
-                case 1:
-                    return (
-                        new int[] { Slots[0, 0], Slots[1, 1], Slots[0, 2] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(0, 0),
-                            ConvertSlotToIndex(1, 1),
-                            ConvertSlotToIndex(0, 2)
-                        }
-                    );
-                case 2:
-                    return (
-                        new int[] { Slots[0, 1], Slots[1, 2] },
-                        new int[] { ConvertSlotToIndex(0, 1), ConvertSlotToIndex(1, 2) }
-                    );
-                case 3:
-                    return (
-                        new int[] { Slots[0, 0], Slots[1, 1], Slots[2, 1] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(0, 0),
-                            ConvertSlotToIndex(1, 1),
-                            ConvertSlotToIndex(2, 1)
-                        }
-                    );
-                case 4:
-                    return (
-                        new int[] { Slots[0, 1], Slots[1, 0], Slots[1, 2], Slots[2, 1] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(0, 1),
-                            ConvertSlotToIndex(1, 0),
-                            ConvertSlotToIndex(1, 2),
-                            ConvertSlotToIndex(2, 1)
-                        }
-                    );
-                case 5:
-                    return (
-                        new int[] { Slots[0, 2], Slots[1, 1], Slots[2, 1] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(0, 2),
-                            ConvertSlotToIndex(1, 1),
-                            ConvertSlotToIndex(2, 1)
-                        }
-                    );
-
-                case 7:
-                    return (
-                        new int[]
-                        {
-                            Slots[1, 0],
-                            Slots[1, 1],
-                            Slots[1, 2],
-                            Slots[3, 0],
-                            Slots[3, 1],
-                            Slots[3, 2]
-                        },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(1, 0),
-                            ConvertSlotToIndex(1, 1),
-                            ConvertSlotToIndex(1, 2),
-                            ConvertSlotToIndex(3, 0),
-                            ConvertSlotToIndex(3, 1),
-                            ConvertSlotToIndex(3, 2)
-                        }
-                    );
-                case 9:
-                    return (
-                        new int[] { Slots[2, 1], Slots[4, 1], Slots[4, 0] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(2, 1),
-                            ConvertSlotToIndex(4, 1),
-                            ConvertSlotToIndex(4, 0)
-                        }
-                    );
-                case 10:
-                    return (
-                        new int[] { Slots[3, 0], Slots[2, 1], Slots[3, 2], Slots[4, 1] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(3, 0),
-                            ConvertSlotToIndex(2, 1),
-                            ConvertSlotToIndex(3, 2),
-                            ConvertSlotToIndex(4, 1)
-                        }
-                    );
-                case 11:
-                    return (
-                        new int[] { Slots[3, 1], Slots[2, 1], Slots[4, 2] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(3, 1),
-                            ConvertSlotToIndex(2, 1),
-                            ConvertSlotToIndex(4, 2)
-                        }
-                    );
-                case 12:
-                    return (
-                        new int[] { Slots[3, 0], Slots[4, 1] },
-                        new int[] { ConvertSlotToIndex(3, 0), ConvertSlotToIndex(4, 1) }
-                    );
-                case 13:
-                    return (
-                        new int[] { Slots[4, 0], Slots[3, 1], Slots[4, 2] },
-                        new int[]
-                        {
-                            ConvertSlotToIndex(4, 0),
-                            ConvertSlotToIndex(3, 1),
-                            ConvertSlotToIndex(4, 2)
-                        }
-                    );
-                case 14:
-                    return (
-                        new int[] { Slots[4, 1], Slots[3, 2] },
-                        new int[] { ConvertSlotToIndex(4, 1), ConvertSlotToIndex(3, 2) }
-                    );
-                default:
-                    Console.WriteLine("ERROR 926491 - Invalid slot index (ID:" + slot + ")");
-                    return (new int[] { }, new int[] { });
-            }
-        }
-
-        private int GetSlot(int indexSlot)
-        { // 0 - 14
-            if (indexSlot < 0 || indexSlot > 14)
-            {
-                Console.WriteLine("ERROR 208416 - Invalid slot index (ID: " + indexSlot + ")");
-                return -2; // invalid slot index
+                currentPlayerPiece = "⚪";
+                currentEnemyPiece = "⚫";
             }
             else
-                return Slots[
-                    ConvertIndexToSlot(indexSlot).Item1,
-                    ConvertIndexToSlot(indexSlot).Item2
-                ];
+            {
+                currentPlayerPiece = "⚫";
+                currentEnemyPiece = "⚪";
+            }
+
         }
-
-        public int ConvertSlotToIndex(int slot1, int slot2) => slot1 * 3 + slot2; // index ( 0 - 14)
-
-        public (int, int) ConvertIndexToSlot(int indexSlot) =>
-            ((int)indexSlot / 3, (int)indexSlot % 3); // slot ( (0, 0) )
     }
 }
