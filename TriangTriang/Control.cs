@@ -133,7 +133,7 @@ namespace TriangTriang.Controls
             {
                 if (x != 3) return false;
             }
-            else if (y % 2 == 0) // if the row is A or E
+            if (y % 2 == 0) // if the row is A or E
             {
                 switch (x)
                 {
