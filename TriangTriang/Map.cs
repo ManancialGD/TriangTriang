@@ -251,7 +251,6 @@ namespace TriangTriang.Models
                 int midY = (int)MathF.Abs((selectedPiece[0] + targetY) / 2);
                 if (IsWithinBounds(midY, midX) && map[midY, midX].ToString() == currentEnemyPiece)
                 {
-                    Console.WriteLine($"{IsWithinBounds(targetY, targetX)}, {map[targetY, targetX].ToString() == "⊙"}");
                     if (IsWithinBounds(targetY, targetX) && map[targetY, targetX].ToString() == "⊙")
                     {
                         midPos[0] = midY;
